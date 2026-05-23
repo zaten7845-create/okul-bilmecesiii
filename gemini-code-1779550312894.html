@@ -1,415 +1,511 @@
-<!doctype html>
-<html class="h-full">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Film Önerileri</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-  <script src="/_sdk/element_sdk.js"></script>
-  <script src="/_sdk/data_sdk.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
-  <style>
-    * { font-family: 'Outfit', sans-serif; }
-    .star-btn { cursor: pointer; transition: transform 0.1s; }
-    .star-btn:hover { transform: scale(1.2); }
-    .card-enter { animation: slideUp 0.3s ease forwards; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .theme-btn { transition: all 0.2s; border: 2px solid transparent; }
-    .theme-btn.active { border-color: currentColor; }
-  </style>
-  <style>body { box-sizing: border-box; }</style>
- </head>
- <body class="h-full">
-  <div id="app" class="h-full w-full overflow-auto" style="background: #ffffff;">
-   <!-- Header -->
-   <header class="text-center py-10 px-4" style="background: linear-gradient(135deg, #000000, #1a1a1a);">
-    <h1 id="site-title" class="text-4xl font-bold mb-2" style="color: #ffffff;">Film Önerileri</h1>
-    <p id="site-subtitle" class="text-lg" style="color: #cccccc;">En sevdiğin filmi öner!</p><!-- Theme Switcher -->
-    <div class="mt-4 flex justify-center gap-3">
-     <button class="theme-btn active px-3 py-1 rounded text-sm text-white" data-theme="dark" style="background: #1a1a1a; border: 2px solid white;"> 🌙 Koyu </button> <button class="theme-btn px-3 py-1 rounded text-sm text-black" data-theme="light" style="background: #ffffff; border: 2px solid transparent;"> ☀️ Açık </button>
-    </div>
-   </header>
-   <main class="max-w-3xl mx-auto px-4 py-8">
-    <!-- Add Form -->
-    <div class="rounded-2xl p-6 mb-8" style="background: #f5f5f5; border: 1px solid #e0e0e0;">
-     <h2 class="text-xl font-semibold mb-4" style="color: #000000;"><i data-lucide="film" class="inline w-5 h-5 mr-1"></i> Yeni Öneri Ekle</h2>
-     <form id="movie-form" class="space-y-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-       <div>
-        <label for="inp-title" class="block text-sm mb-1" style="color: #333333;">Film Adı *</label> <input id="inp-title" type="text" required class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2" style="background: #ffffff; color: #000000; border: 1px solid #cccccc; --tw-ring-color: #000000;">
-       </div>
-       <div>
-        <label for="inp-genre" class="block text-sm mb-1" style="color: #333333;">Tür</label> <input id="inp-genre" type="text" placeholder="Dram, Aksiyon..." class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2" style="background: #ffffff; color: #000000; border: 1px solid #cccccc;">
-       </div>
-       <div>
-        <label for="inp-year" class="block text-sm mb-1" style="color: #333333;">Yıl</label> <input id="inp-year" type="text" placeholder="2024" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2" style="background: #ffffff; color: #000000; border: 1px solid #cccccc;">
-       </div>
-       <div>
-        <label for="inp-name" class="block text-sm mb-1" style="color: #333333;">Öneren Kişi</label> <input id="inp-name" type="text" placeholder="İsmin" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2" style="background: #ffffff; color: #000000; border: 1px solid #cccccc;">
-       </div>
-      </div>
-      <div>
-       <label for="inp-comment" class="block text-sm mb-1" style="color: #333333;">Neden öneriyorsun?</label> <textarea id="inp-comment" rows="2" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 resize-none" style="background: #ffffff; color: #000000; border: 1px solid #cccccc;"></textarea>
-      </div>
-      <div>
-       <label class="block text-sm mb-2" style="color: #333333;">Puan</label>
-       <div id="star-container" class="flex gap-1"></div>
-      </div><button type="submit" id="submit-btn" class="px-6 py-2 rounded-lg font-medium text-white transition hover:opacity-90" style="background: #000000;"> Öneri Ekle </button> <span id="form-loading" class="hidden ml-3 text-sm" style="color: #333333;">Kaydediliyor...</span>
-      <div id="form-error" class="hidden mt-2 text-sm text-red-400"></div>
-      <div id="limit-warning" class="hidden mt-2 text-sm text-yellow-400"></div>
-     </form>
-    </div><!-- Movie List -->
-    <div id="movie-list" class="space-y-4"></div>
-    <p id="empty-state" class="text-center py-12 hidden" style="color: #999999;">Henüz öneri yok. İlk öneriyi sen ekle! 🎬</p><!-- Delete Confirmation -->
-    <div id="delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7);">
-     <div class="rounded-xl p-6 max-w-sm w-full" style="background: #f5f5f5;">
-      <p class="mb-4" style="color: #000000;">Bu öneriyi silmek istediğine emin misin?</p>
-      <div class="flex gap-3 justify-end">
-       <button id="cancel-delete" class="px-4 py-2 rounded-lg text-sm" style="background: #ffffff; color: #000000; border: 1px solid #cccccc;">İptal</button> <button id="confirm-delete" class="px-4 py-2 rounded-lg text-sm text-white" style="background: #000000;">Sil</button>
-      </div>
-     </div>
-    </div>
-   </main>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>İzmit Lisesi — Film Öneri Portalı</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d14;
+    --surface: #13131e;
+    --card: #1a1a2a;
+    --border: #2a2a40;
+    --accent: #7c5cfc;
+    --accent-light: #a48bfd;
+    --accent-glow: rgba(124,92,252,0.15);
+    --text: #e8e8f2;
+    --muted: #6868a0;
+    --success: #3ecf8e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── HEADER ── */
+  .portal-header {
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    text-align: center;
+  }
+
+  .portal-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 4px;
+    color: var(--text);
+  }
+
+  /* ── WRAPPER ── */
+  .wrapper {
+    width: 100%;
+    max-width: 480px;
+    padding: 36px 20px 60px;
+  }
+
+  /* ── FORM CARD ── */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 36px 28px 28px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-icon {
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .form-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    text-align: center;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .form-sub {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .field-group {
+    margin-bottom: 18px;
+  }
+
+  .field-label {
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+    font-weight: 400;
+    display: block;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.93rem;
+    font-weight: 300;
+    padding: 13px 15px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .field-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .field-input::placeholder { color: var(--muted); opacity: 0.7; }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  textarea.field-input {
+    resize: none;
+    min-height: 90px;
+    line-height: 1.6;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover  { background: var(--accent-light); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { background: var(--border); cursor: default; }
+
+  .btn-secondary {
+    width: 100%;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 400;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+
+  .err-msg {
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    text-align: center;
+    margin-top: 10px;
+    min-height: 18px;
+  }
+
+  /* ── BAŞARILI EKRANI ── */
+  .success-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 48px 28px 40px;
+    text-align: center;
+    animation: fadeUp 0.4s ease both;
+    display: none;
+  }
+
+  .success-icon {
+    font-size: 3rem;
+    margin-bottom: 14px;
+  }
+
+  .success-title {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--success);
+    margin-bottom: 10px;
+  }
+
+  .success-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .film-preview {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    text-align: left;
+    margin-bottom: 24px;
+  }
+
+  .film-preview .fp-name {
+    font-weight: 500;
+    color: var(--accent-light);
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+
+  .film-preview .fp-who {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .film-preview .fp-reason {
+    font-size: 0.85rem;
+    color: #a0a0c0;
+    line-height: 1.6;
+  }
+
+  /* ── ÖNERİLER LİSTESİ ── */
+  .list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 0 2px;
+  }
+
+  .list-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    color: var(--accent-light);
+  }
+
+  .list-count {
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+  }
+
+  .oneri-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .oneri-card:hover { border-color: var(--accent); }
+
+  .oneri-card .oc-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .oneri-card .oc-film {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--accent-light);
+  }
+
+  .oneri-card .oc-who {
+    font-size: 0.73rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 9px;
+  }
+
+  .oneri-card .oc-reason {
+    font-size: 0.83rem;
+    color: #9090b8;
+    line-height: 1.6;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  /* ── SEKMELEr ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 9px;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 9px;
+    transition: all 0.2s;
+    font-weight: 400;
+  }
+
+  .tab.active {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div class="portal-header">
+  <h1>İZMİT LİSESİ MOBİL PORTAL</h1>
+</div>
+
+<div class="wrapper">
+
+  <!-- SEKMELER -->
+  <div class="tabs">
+    <div class="tab active" id="tab-form" onclick="switchTab('form')">🎬 Öneri Yap</div>
+    <div class="tab" id="tab-list" onclick="switchTab('list')">📋 Öneriler</div>
   </div>
-  <script>
-  // State
-  let movies = [];
-  let selectedRating = 0;
-  let deleteTarget = null;
-  let currentRecordCount = 0;
-  let currentTheme = 'dark';
 
-  const themes = {
-    dark: {
-      bg: '#ffffff',
-      headerBg: 'linear-gradient(135deg, #000000, #1a1a1a)',
-      formBg: '#f5f5f5',
-      formBorder: '#e0e0e0',
-      cardBg: '#1a1a1a',
-      cardBorder: '#333333',
-      textPrimary: '#000000',
-      textSecondary: '#333333',
-      textLight: '#cccccc',
-      textLighter: '#999999',
-      cardText: '#ffffff',
-      cardSubtext: '#b0b0b0',
-      cardSmall: '#808080',
-      buttonBg: '#000000',
-      buttonText: '#ffffff',
-      modalBg: '#f5f5f5',
-      modalText: '#000000'
-    },
-    light: {
-      bg: '#1a1a1a',
-      headerBg: 'linear-gradient(135deg, #ffffff, #f5f5f5)',
-      formBg: '#2a2a2a',
-      formBorder: '#444444',
-      cardBg: '#ffffff',
-      cardBorder: '#e0e0e0',
-      textPrimary: '#ffffff',
-      textSecondary: '#e0e0e0',
-      textLight: '#666666',
-      textLighter: '#888888',
-      cardText: '#000000',
-      cardSubtext: '#555555',
-      cardSmall: '#999999',
-      buttonBg: '#ffffff',
-      buttonText: '#000000',
-      modalBg: '#ffffff',
-      modalText: '#000000'
-    }
-  };
+  <!-- FORM BÖLÜMÜ -->
+  <div id="section-form">
+    <!-- Form kartı -->
+    <div class="form-card" id="formCard">
+      <div class="form-icon">🎬</div>
+      <div class="form-title">Film Önerisi</div>
+      <div class="form-sub">Bilgilerini gir ve öneri yap!</div>
 
-  const defaultConfig = {
-    site_title: 'Film Önerileri',
-    site_subtitle: 'En sevdiğin filmi öner!',
-    background_color: '#ffffff',
-    surface_color: '#f5f5f5',
-    text_color: '#333333',
-    primary_action: '#000000',
-    secondary_action: '#cccccc',
-    font_family: 'Outfit',
-    font_size: 16
-  };
-
-  // Element SDK
-  window.elementSdk.init({
-    defaultConfig,
-    onConfigChange: async (config) => {
-      const c = { ...defaultConfig, ...config };
-      const theme = themes[currentTheme];
-      document.getElementById('app').style.background = theme.bg;
-      document.querySelector('header').style.background = theme.headerBg;
-      document.getElementById('site-title').textContent = c.site_title;
-      document.getElementById('site-title').style.color = '#ffffff';
-      document.getElementById('site-subtitle').textContent = c.site_subtitle;
-      document.getElementById('site-subtitle').style.color = theme.textLight;
-      document.querySelectorAll('[style*="background: #16213e"]').forEach(el => el.style.background = theme.cardBg);
-      document.getElementById('submit-btn').style.background = theme.buttonBg;
-      document.getElementById('submit-btn').style.color = theme.buttonText;
-      const font = `${c.font_family}, Outfit, sans-serif`;
-      document.getElementById('app').style.fontFamily = font;
-      document.getElementById('site-title').style.fontSize = `${c.font_size * 2.2}px`;
-      document.getElementById('site-subtitle').style.fontSize = `${c.font_size * 1.1}px`;
-      updateThemeUI();
-    },
-    mapToCapabilities: (config) => {
-      const c = { ...defaultConfig, ...config };
-      const mut = (key) => ({ get: () => c[key], set: (v) => { c[key] = v; window.elementSdk.setConfig({ [key]: v }); } });
-      return {
-        recolorables: [mut('background_color'), mut('surface_color'), mut('text_color'), mut('primary_action'), mut('secondary_action')],
-        borderables: [],
-        fontEditable: mut('font_family'),
-        fontSizeable: mut('font_size')
-      };
-    },
-    mapToEditPanelValues: (config) => {
-      const c = { ...defaultConfig, ...config };
-      return new Map([['site_title', c.site_title], ['site_subtitle', c.site_subtitle]]);
-    }
-  });
-
-  function updateThemeUI() {
-    const theme = themes[currentTheme];
-    document.getElementById('app').style.background = theme.bg;
-    document.querySelector('header').style.background = theme.headerBg;
-    
-    // Update form container
-    const formContainer = document.querySelector('[style*="background: #f5f5f5"]');
-    if (formContainer) {
-      formContainer.style.background = theme.formBg;
-      formContainer.style.borderColor = theme.formBorder;
-    }
-    
-    // Update all input fields
-    document.querySelectorAll('input, textarea').forEach(el => {
-      el.style.background = theme.cardBg;
-      el.style.color = theme.cardText;
-      el.style.borderColor = theme.formBorder;
-    });
-    
-    // Update labels and text
-    document.querySelectorAll('label, h2').forEach(el => {
-      el.style.color = theme.textSecondary;
-    });
-    
-    // Update empty state
-    const empty = document.getElementById('empty-state');
-    if (empty) empty.style.color = theme.textLighter;
-    
-    // Update delete modal
-    const modal = document.getElementById('delete-modal');
-    if (modal) {
-      const modalContent = modal.querySelector('[style*="background: #f5f5f5"]');
-      if (modalContent) {
-        modalContent.style.background = theme.modalBg;
-        const text = modalContent.querySelector('p');
-        if (text) text.style.color = theme.modalText;
-      }
-    }
-    
-    // Update movie cards
-    document.querySelectorAll('[data-id]').forEach(card => {
-      card.style.background = theme.cardBg;
-      card.style.borderColor = theme.cardBorder;
-      const title = card.querySelector('h3');
-      if (title) title.style.color = theme.cardText;
-      const sm = card.querySelectorAll('[style*="color: #a8b2d1"]');
-      sm.forEach(el => el.style.color = theme.cardSubtext);
-      const comment = card.querySelector('[style*="color: #ccc"]');
-      if (comment) comment.style.color = theme.cardSubtext;
-      const author = card.querySelector('[style*="color: #a8b2d1"]');
-      if (author) author.style.color = theme.cardSmall;
-    });
-    
-    renderMovies();
-  }
-
-  // Theme switcher
-  document.querySelectorAll('.theme-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const theme = e.currentTarget.dataset.theme;
-      currentTheme = theme;
-      
-      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      
-      // Update button styles
-      document.querySelectorAll('.theme-btn').forEach(b => {
-        if (b.dataset.theme === 'dark') {
-          b.style.background = currentTheme === 'dark' ? '#1a1a1a' : '#ffffff';
-          b.style.color = currentTheme === 'dark' ? '#ffffff' : '#000000';
-          b.style.borderColor = currentTheme === 'dark' ? 'white' : 'transparent';
-        } else {
-          b.style.background = currentTheme === 'light' ? '#ffffff' : '#1a1a1a';
-          b.style.color = currentTheme === 'light' ? '#000000' : '#ffffff';
-          b.style.borderColor = currentTheme === 'light' ? 'black' : 'transparent';
-        }
-      });
-      
-      updateThemeUI();
-    });
-  });
-
-  // Stars
-  const starContainer = document.getElementById('star-container');
-  for (let i = 1; i <= 5; i++) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'star-btn text-2xl';
-    btn.textContent = '☆';
-    btn.style.color = '#FFD700';
-    btn.onclick = () => { selectedRating = i; renderStars(); };
-    starContainer.appendChild(btn);
-  }
-  function renderStars() {
-    [...starContainer.children].forEach((b, i) => { b.textContent = i < selectedRating ? '★' : '☆'; });
-  }
-
-  // Data SDK
-  const dataHandler = {
-    onDataChanged(data) {
-      movies = data;
-      currentRecordCount = data.length;
-      renderMovies();
-    }
-  };
-  window.dataSdk.init(dataHandler);
-
-  // Form
-  document.getElementById('movie-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const errEl = document.getElementById('form-error');
-    const limitEl = document.getElementById('limit-warning');
-    errEl.classList.add('hidden');
-    limitEl.classList.add('hidden');
-
-    if (currentRecordCount >= 999) {
-      limitEl.textContent = 'Maksimum öneri sayısına ulaşıldı (999). Lütfen bazı önerileri sil.';
-      limitEl.classList.remove('hidden');
-      return;
-    }
-
-    const title = document.getElementById('inp-title').value.trim();
-    if (!title) return;
-
-    document.getElementById('submit-btn').disabled = true;
-    document.getElementById('form-loading').classList.remove('hidden');
-
-    const result = await window.dataSdk.create({
-      title,
-      genre: document.getElementById('inp-genre').value.trim(),
-      year: document.getElementById('inp-year').value.trim(),
-      rating: selectedRating,
-      comment: document.getElementById('inp-comment').value.trim(),
-      recommender: document.getElementById('inp-name').value.trim(),
-      created_at: new Date().toISOString()
-    });
-
-    document.getElementById('submit-btn').disabled = false;
-    document.getElementById('form-loading').classList.add('hidden');
-
-    if (result.isOk) {
-      e.target.reset();
-      selectedRating = 0;
-      renderStars();
-    } else {
-      errEl.textContent = 'Bir hata oluştu. Tekrar dene.';
-      errEl.classList.remove('hidden');
-    }
-  });
-
-  // Render
-  function renderMovies() {
-    const list = document.getElementById('movie-list');
-    const empty = document.getElementById('empty-state');
-    const theme = themes[currentTheme];
-
-    if (movies.length === 0) {
-      list.innerHTML = '';
-      empty.classList.remove('hidden');
-      empty.style.color = theme.textLighter;
-      return;
-    }
-    empty.classList.add('hidden');
-
-    const existingMap = new Map([...list.children].map(el => [el.dataset.id, el]));
-    const sorted = [...movies].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    sorted.forEach(movie => {
-      const id = movie.__backendId;
-      if (existingMap.has(id)) {
-        updateCard(existingMap.get(id), movie);
-        existingMap.delete(id);
-      } else {
-        const card = createCard(movie);
-        list.appendChild(card);
-      }
-    });
-    existingMap.forEach(el => el.remove());
-
-    sorted.forEach((movie, i) => {
-      const card = list.querySelector(`[data-id="${movie.__backendId}"]`);
-      if (card && card !== list.children[i]) list.insertBefore(card, list.children[i]);
-    });
-  }
-
-  function createCard(movie) {
-    const div = document.createElement('div');
-    div.dataset.id = movie.__backendId;
-    div.className = 'card-enter rounded-xl p-5 relative';
-    const theme = themes[currentTheme];
-    div.style.cssText = `background: ${theme.cardBg}; border: 1px solid ${theme.cardBorder};`;
-    updateCard(div, movie);
-    return div;
-  }
-
-  function updateCard(div, movie) {
-    const theme = themes[currentTheme];
-    const stars = '★'.repeat(movie.rating) + '☆'.repeat(5 - movie.rating);
-    div.innerHTML = `
-      <div class="flex justify-between items-start">
-        <div>
-          <h3 class="text-lg font-semibold" style="color: ${theme.cardText};">${esc(movie.title)}</h3>
-          <div class="flex flex-wrap gap-3 mt-1 text-sm" style="color: ${theme.cardSubtext};">
-            ${movie.genre ? `<span>${esc(movie.genre)}</span>` : ''}
-            ${movie.year ? `<span>${esc(movie.year)}</span>` : ''}
-          </div>
-          <div class="mt-1" style="color: #FFD700; letter-spacing: 0.1em;">${stars}</div>
-          ${movie.comment ? `<p class="mt-2 text-sm" style="color: ${theme.cardSubtext};">"${esc(movie.comment)}"</p>` : ''}
-          ${movie.recommender ? `<p class="mt-1 text-xs" style="color: ${theme.cardSmall};">— ${esc(movie.recommender)}</p>` : ''}
-        </div>
-        <button class="del-btn p-1 rounded hover:opacity-70" style="color: #FFD700;" data-id="${movie.__backendId}">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
-        </button>
+      <div class="field-group">
+        <label class="field-label">Ad Soyad</label>
+        <input class="field-input" id="inp-ad" type="text" placeholder="Örnek: Ahmet Yılmaz">
       </div>
-    `;
-    div.querySelector('.del-btn').onclick = () => showDeleteModal(movie);
-    lucide.createIcons();
+
+      <div class="row-2">
+        <div class="field-group">
+          <label class="field-label">Sınıf</label>
+          <input class="field-input" id="inp-sinif" type="text" placeholder="Örnek: 11">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Şube</label>
+          <input class="field-input" id="inp-sube" type="text" placeholder="Örnek: B">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Film Adı</label>
+        <input class="field-input" id="inp-film" type="text" placeholder="Örnek: Inception, Interstellar...">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Neden öneriyorsun? (İsteğe bağlı)</label>
+        <textarea class="field-input" id="inp-neden" placeholder="Kısaca açıkla..."></textarea>
+      </div>
+
+      <button class="btn-primary" onclick="submitForm()">
+        Öneriyi Gönder ✅
+      </button>
+      <div class="err-msg" id="errMsg"></div>
+    </div>
+
+    <!-- Başarı kartı -->
+    <div class="success-card" id="successCard">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Önerin alındı!</div>
+      <div class="success-desc">Teşekkürler! Film önerin listeye eklendi.</div>
+
+      <div class="film-preview" id="filmPreview"></div>
+
+      <button class="btn-primary" onclick="resetForm()">
+        ＋ Yeni Öneri Yap
+      </button>
+      <button class="btn-secondary" onclick="switchTab('list')">
+        ← Tüm Önerileri Gör
+      </button>
+    </div>
+  </div>
+
+  <!-- LİSTE BÖLÜMÜ -->
+  <div id="section-list" style="display:none;">
+    <div class="list-header">
+      <div class="list-title">Film Önerileri</div>
+      <div class="list-count" id="listCount">0 öneri</div>
+    </div>
+    <div id="oneriList"></div>
+  </div>
+
+</div>
+
+<script>
+let oneriler = JSON.parse(localStorage.getItem('sinebot_oneriler') || '[]');
+
+function switchTab(tab) {
+  document.getElementById('tab-form').classList.toggle('active', tab === 'form');
+  document.getElementById('tab-list').classList.toggle('active', tab === 'list');
+  document.getElementById('section-form').style.display = tab === 'form' ? 'block' : 'none';
+  document.getElementById('section-list').style.display = tab === 'list' ? 'block' : 'none';
+  if (tab === 'list') renderList();
+}
+
+function submitForm() {
+  const ad    = document.getElementById('inp-ad').value.trim();
+  const sinif = document.getElementById('inp-sinif').value.trim();
+  const sube  = document.getElementById('inp-sube').value.trim();
+  const film  = document.getElementById('inp-film').value.trim();
+  const neden = document.getElementById('inp-neden').value.trim();
+  const err   = document.getElementById('errMsg');
+
+  if (!ad || !sinif || !sube || !film) {
+    err.textContent = 'Lütfen zorunlu alanları doldurun.';
+    return;
   }
 
-  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  err.textContent = '';
 
-  // Delete
-  function showDeleteModal(movie) {
-    deleteTarget = movie;
-    document.getElementById('delete-modal').classList.remove('hidden');
+  const oneri = { ad, sinif, sube, film, neden, tarih: new Date().toLocaleDateString('tr-TR') };
+  oneriler.unshift(oneri);
+  localStorage.setItem('sinebot_oneriler', JSON.stringify(oneriler));
+
+  // Preview göster
+  document.getElementById('filmPreview').innerHTML = `
+    <div class="fp-name">${film}</div>
+    <div class="fp-who">${ad} — ${sinif}/${sube}</div>
+    ${neden ? `<div class="fp-reason">${neden}</div>` : ''}
+  `;
+
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('successCard').style.display = 'block';
+}
+
+function resetForm() {
+  ['inp-ad','inp-sinif','inp-sube','inp-film','inp-neden'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('errMsg').textContent = '';
+  document.getElementById('successCard').style.display = 'none';
+  document.getElementById('formCard').style.display = 'block';
+}
+
+function renderList() {
+  const container = document.getElementById('oneriList');
+  const count = document.getElementById('listCount');
+  count.textContent = `${oneriler.length} öneri`;
+
+  if (oneriler.length === 0) {
+    container.innerHTML = '<div class="empty-state">Henüz öneri yok.<br>İlk öneriyi sen yap!</div>';
+    return;
   }
-  document.getElementById('cancel-delete').onclick = () => {
-    document.getElementById('delete-modal').classList.add('hidden');
-    deleteTarget = null;
-  };
-  document.getElementById('confirm-delete').onclick = async () => {
-    if (!deleteTarget) return;
-    document.getElementById('confirm-delete').disabled = true;
-    const result = await window.dataSdk.delete(deleteTarget);
-    document.getElementById('confirm-delete').disabled = false;
-    document.getElementById('delete-modal').classList.add('hidden');
-    deleteTarget = null;
-  };
 
-  lucide.createIcons();
+  container.innerHTML = oneriler.map(o => `
+    <div class="oneri-card">
+      <div class="oc-top">
+        <div class="oc-film">${o.film}</div>
+        <div class="oc-who">${o.sinif}/${o.sube}</div>
+      </div>
+      <div class="oc-reason">
+        <strong style="color:var(--text);font-weight:500;">${o.ad}</strong>
+        ${o.neden ? ' — ' + o.neden : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Enter ile gönder
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement.tagName !== 'TEXTAREA') submitForm();
+});
 </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a00516eeeff3b812',t:'MTc3OTU1MDA5Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
