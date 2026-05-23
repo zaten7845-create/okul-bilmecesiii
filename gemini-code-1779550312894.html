@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Film Önerileri - İzmit Lisesi</title>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.15);
+            --border: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container { width: 100%; max-width: 500px; }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        h1 { text-align: center; }
+
+        /* Zorunlu alanlar için stil */
+        input, textarea, select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 12px;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        input::placeholder { color: rgba(255, 255, 255, 0.6); }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: white;
+            color: #302b63;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .film-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 10px;
+            border-left: 5px solid #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎬 Film Önerileri</h1>
+        
+        <div class="glass-card">
+            <form id="filmForm">
+                <input type="text" id="filmAdi" placeholder="Film Adı *" required>
+                
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="sinif" placeholder="Sınıf *" required style="width: 50%;">
+                    <input type="text" id="sube" placeholder="Şube *" required style="width: 50%;">
+                </div>
+                
+                <input type="number" id="okulNo" placeholder="Okul Numarası *" required>
+                <textarea id="filmNotu" placeholder="Neden öneriyorsun?"></textarea>
+                
+                <button type="submit">Öneriyi Kaydet</button>
+            </form>
+        </div>
+
+        <div id="liste"></div>
+    </div>
+
+    <script>
+        document.getElementById('filmForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const film = document.getElementById('filmAdi').value;
+            const sinif = document.getElementById('sinif').value;
+            const sube = document.getElementById('sube').value;
+            const no = document.getElementById('okulNo').value;
+            const not = document.getElementById('filmNotu').value;
+
+            const liste = document.getElementById('liste');
+            const div = document.createElement('div');
+            div.className = 'glass-card film-item';
+            div.innerHTML = `
+                <strong>${film}</strong><br>
+                <small>${sinif}/${sube} - No: ${no}</small>
+                <p style="margin-top:5px; font-style:italic;">"${not}"</p>
+            `;
+            
+            liste.prepend(div);
+            this.reset(); // Formu temizle
+        });
+    </script>
+</body>
+</html>
